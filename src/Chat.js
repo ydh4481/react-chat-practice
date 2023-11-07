@@ -59,7 +59,6 @@ const Chat = () => {
     }).catch((e) => {
       console.log('error', e)
     })
-    console.log(content)
   }
 
   useEffect(() => {
@@ -73,6 +72,7 @@ const Chat = () => {
   const handler = (message) => {
     if (!client.current.connected)
       return;
+    console.log(user)
     client.current.publish({
       destination: '/pub/chat/message',
       body: JSON.stringify({
@@ -80,7 +80,7 @@ const Chat = () => {
         messageType: 'TALK',
         redisRoomId: id,
         message: message,
-        sender: user.email
+        sender: user.nickName
       }),
     })
   }
@@ -91,28 +91,43 @@ const Chat = () => {
         채팅
       </h3>
       <div>
-        {content && content.map(d => (
-           // 표현하려고 하는 값
-          <div key={d.createdAt}>
-            <div>{d.sender}</div>
-            <div>{d.message} {d.createdAt}</div>
-          </div>
-        ))}
+        {content && content.map(d => {
+          // 표현하려고 하는 값
+          if (d.sender === user.nickName) {
+            return (
+              <div key={d.createdAt} style={{ marginLeft: '10rem' }}>
+                <div>{d.sender} {d.readCount}</div>
+                <div>{d.message} {d.createdAt}</div>
+              </div>
+            )
+          } else {
+            return (
+              <div key={d.createdAt}>
+                <div>{d.sender} {d.readCount}</div>
+                <div>{d.message} {d.createdAt}</div>
+              </div>
+            )
+          }
+
+        })}
       </div>
-      <input
-        value={ms}
-        onChange={_onChange}
-        name={"ms"}
-      />
-      <button
-        type={"button"}
-        onClick={() => {
-          handler(ms);
-          setMs("");
-        }}
-      >
-        전송
-      </button>
+      <div style={{marginTop: '10rem'}}>
+        <input
+          style={{width: '30vw'}}
+          value={ms}
+          onChange={_onChange}
+          name={"ms"}
+        />
+        <button
+          type={"button"}
+          onClick={() => {
+            handler(ms);
+            setMs("");
+          }}
+        >
+          전송
+        </button>
+      </div>
     </div>
   )
 };
