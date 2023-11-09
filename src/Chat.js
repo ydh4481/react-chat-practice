@@ -24,7 +24,8 @@ const Chat = () => {
     client.current = new StompJs.Client({
       brokerURL: 'ws://localhost:8080/ws',
       connectHeaders: {
-        Authentication: `Bearer ${token}`
+        Authentication: `Bearer ${token}`,
+        RedisRoomId: id
       },
       debug: (str) => {
         console.log(str)

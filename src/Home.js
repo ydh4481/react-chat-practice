@@ -48,7 +48,7 @@ const Home = (props) => {
     if (!token) {
       window.alert('토큰 입력하세염')
     } else {
-      axios.post(`http://localhost:8080/api/chat/room?memberId=${user.userId}`,
+      axios.post(`http://localhost:8080/api/chat/rooms?memberId=${user.userId}`,
         { receiver: receiver }, {
           headers: {
             Authorization: `Bearer ${token}`
