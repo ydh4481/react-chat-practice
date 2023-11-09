@@ -33,7 +33,10 @@ const Chat = () => {
     })
     // SUB
     client.current.onConnect = () => {
-      client.current.subscribe(`/sub/chat/room/${id}`, subCallback)
+      client.current.subscribe(`/sub/chat/room/${id}`, subCallback, {
+        Authentication: `Bearer ${token}`,
+        RedisRoomId: id
+      })
     }
     client.current.activate();
   }
@@ -83,6 +86,9 @@ const Chat = () => {
         message: message,
         sender: user.nickName
       }),
+      headers: {
+        Authentication: `Bearer ${token}`
+      }
     })
   }
 
@@ -112,9 +118,9 @@ const Chat = () => {
 
         })}
       </div>
-      <div style={{marginTop: '10rem'}}>
+      <div style={{ marginTop: '10rem' }}>
         <input
-          style={{width: '30vw'}}
+          style={{ width: '30vw' }}
           value={ms}
           onChange={_onChange}
           name={"ms"}
