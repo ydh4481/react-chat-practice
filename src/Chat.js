@@ -38,6 +38,8 @@ const Chat = () => {
         Authentication: `Bearer ${token}`,
         RedisRoomId: id
       })
+      // 초기 연결 시 ENTER 메세지 전송
+      // 상대방이 들어왔다는 이벤트 전달
       client.current.publish({
         destination: '/pub/chat/message',
         body: JSON.stringify({
@@ -54,6 +56,7 @@ const Chat = () => {
     }
     client.current.activate();
   }
+
   const disConnect = () => {
     if (client.current.connected)
       client.current.deactivate();
@@ -64,6 +67,9 @@ const Chat = () => {
     let msg = JSON.parse(data.body);
     console.log('MSG', msg)
     if (msg.messageType === "ENTER") {
+      // messageType이 "ENTER"이고, sender가 "나"가 아닐 때
+      // 현재 메세지의 readCount 값을 모두 0으로 변경
+      // TODO setContent 했을 때 화면에 반영되지 않음. content가 랜더링되지 않음
       if (msg.sender !== user.nickName) {
         let updatedUnreadContent = content.map(c => ({ ...c, readCount: 0 }));
         console.log(updatedUnreadContent)
