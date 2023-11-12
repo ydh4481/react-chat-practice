@@ -32,6 +32,7 @@ const Home = (props) => {
         Authorization: `Bearer ${token}`
       }
     }).then((e) => {
+      console.log('채팅방 불러오기', e.data)
       setRooms(e.data)
     })
   }

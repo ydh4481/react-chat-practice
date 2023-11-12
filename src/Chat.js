@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as StompJs from "@stomp/stompjs";
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
+
 
 const Chat = () => {
   const token = useLocation().state.token;
   const user = useLocation().state.user;
   let { id } = useParams();
-  const [content, setContent] = useState([]);
+  const [content, setContent] = useState([])
   const client = useRef({});
+  const partner = useRef("");
   const [ms, setMs] = useState("");
 
   const _onChange = useCallback(
@@ -37,6 +38,19 @@ const Chat = () => {
         Authentication: `Bearer ${token}`,
         RedisRoomId: id
       })
+      client.current.publish({
+        destination: '/pub/chat/message',
+        body: JSON.stringify({
+          // chatMessageDto
+          messageType: 'ENTER',
+          redisRoomId: id,
+          message: "",
+          sender: user.nickName
+        }),
+        headers: {
+          Authentication: `Bearer ${token}`
+        }
+      })
     }
     client.current.activate();
   }
@@ -49,7 +63,17 @@ const Chat = () => {
   const subCallback = (data) => {
     let msg = JSON.parse(data.body);
     console.log('MSG', msg)
-    setContent((c) => [...c, msg])
+    if (msg.messageType === "ENTER") {
+      if (msg.sender !== user.nickName) {
+        let updatedUnreadContent = content.map(c => ({ ...c, readCount: 0 }));
+        console.log(updatedUnreadContent)
+        setContent(updatedUnreadContent);
+      }
+    } else {
+      console.log('pub', msg.readCount)
+      setContent((c) => [...c, msg])
+    }
+    console.log('read', content)
   }
 
   // 초기 메세지 불러오기
@@ -59,15 +83,24 @@ const Chat = () => {
         Authorization: `Bearer ${token}`
       }
     }).then((e) => {
-      setContent(e.data.messages)
+      setContent([]);
+
+      console.log('초기 메세지 불러오기', e.data)
+      e.data.messages.map((msg) => {
+        console.log('초기메세지', msg)
+        setContent((c) => [...c, msg])
+      })
+      partner.current = e.data.receiver === user.nickName ? e.data.sender : e.data.receiver
     }).catch((e) => {
       console.log('error', e)
     })
   }
 
   useEffect(() => {
+    if (!content) return;
     connect();
     initContents()
+
     return () => disConnect();
   }, []);
 
@@ -91,32 +124,48 @@ const Chat = () => {
       }
     })
   }
+  const messageTemplate = (msg) => {
+    if (msg.sender === user.nickName) {
+      return (
+        <div key={msg.chatMessageId} style={{ marginLeft: '20rem' }}>
+          <div>{msg.chatMessageId} {msg.sender} {msg.readCount === 1 ? '안읽음' : '읽음'}</div>
+          <div>{msg.message} {dateFormat(msg.createdAt)}</div>
+        </div>
+      )
+    } else {
+      return (
+        <div key={msg.createdAt}>
+          <div>{msg.chatMessageId} {msg.sender} {msg.readCount === 1 ? '안읽음' : '읽음'}</div>
+          <div>{msg.message} {dateFormat(msg.createdAt)}</div>
+        </div>
+      )
+    }
+  }
+  const dateFormat = (date) => {
+    date = new Date(date)
+    let month = date.getMonth() + 1;
+    let day = date.getDate();
+    let hour = date.getHours();
+    let minute = date.getMinutes();
+    let second = date.getSeconds();
+
+    month = month >= 10 ? month : '0' + month;
+    day = day >= 10 ? day : '0' + day;
+    hour = hour >= 10 ? hour : '0' + hour;
+    minute = minute >= 10 ? minute : '0' + minute;
+    second = second >= 10 ? second : '0' + second;
+
+    return date.getFullYear() + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+  }
 
   return (
     <div>
       <h3>
-        채팅
+        {partner.current || ""} 님과의 채팅
       </h3>
       <div>
-        {content && content.map(d => {
-          // 표현하려고 하는 값
-          if (d.sender === user.nickName) {
-            return (
-              <div key={d.createdAt} style={{ marginLeft: '10rem' }}>
-                <div>{d.sender} {d.readCount}</div>
-                <div>{d.message} {d.createdAt}</div>
-              </div>
-            )
-          } else {
-            return (
-              <div key={d.createdAt}>
-                <div>{d.sender} {d.readCount}</div>
-                <div>{d.message} {d.createdAt}</div>
-              </div>
-            )
-          }
+        {content && content.map((d) => messageTemplate(d))}
 
-        })}
       </div>
       <div style={{ marginTop: '10rem' }}>
         <input
@@ -130,8 +179,7 @@ const Chat = () => {
           onClick={() => {
             handler(ms);
             setMs("");
-          }}
-        >
+          }}>
           전송
         </button>
       </div>
